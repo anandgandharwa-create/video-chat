@@ -3,52 +3,99 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Video Chat</title>
+<title>Premium Random Video Chat</title>
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-body {margin:0;font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#0f0f1a,#1a1a2e);color:white;display:flex;justify-content:center;align-items:center;height:100vh}
-.container {text-align:center;background:rgba(255,255,255,0.05);padding:20px;border-radius:20px}
-button {background:linear-gradient(45deg,#ff4ecd,#6a5cff);border:none;padding:10px 20px;color:white;border-radius:20px;cursor:pointer}
-#videos {display:flex;gap:10px;margin-top:15px}
-.video-box {width:150px;height:200px;background:black;border-radius:10px}
+body{margin:0;font-family:Poppins;background:linear-gradient(135deg,#0f0f1a,#1a1a2e);color:white;display:flex;justify-content:center;align-items:center;height:100vh}
+.container{text-align:center;background:rgba(255,255,255,0.05);padding:25px;border-radius:20px}
+button{padding:10px 20px;border:none;border-radius:20px;background:linear-gradient(45deg,#ff4ecd,#6a5cff);color:white;cursor:pointer}
+#videos{display:flex;gap:10px;margin-top:15px;justify-content:center}
+.video-box{width:150px;height:200px;background:black;border-radius:10px}
+.coin{color:gold;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="container">
-<h2>🔥 Live Video Chat</h2>
-<button onclick="startCall()">Start Call</button>
+<h2>🔥 Premium Video Chat</h2>
+<button onclick="startMatch()">Find Partner</button>
 <div id="videos">
 <div id="local" class="video-box"></div>
 <div id="remote" class="video-box"></div>
 </div>
+<div class="coin">💰 Coins: <span id="coins">100</span></div>
 </div>
 
 <script>
-const APP_ID = "YOUR_AGORA_APP_ID"; // replace
-const CHANNEL = "test";
-let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-let localTracks = [];
+// Firebase config
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB_URL",
+  projectId: "YOUR_ID",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-async function startCall() {
-  await client.join(APP_ID, CHANNEL, null, null);
+// Agora
+const APP_ID = "YOUR_AGORA_APP_ID";
+let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+let localTracks;
+let coins = 100;
+let timer;
+
+async function startMatch() {
+  if(coins <= 0){ alert("No coins! Recharge needed"); return; }
+
+  const userId = "user_" + Math.floor(Math.random()*100000);
+  const waitingRef = db.ref("waiting");
+
+  const snapshot = await waitingRef.once("value");
+  let channelName;
+
+  if (snapshot.exists()) {
+    const partnerId = Object.keys(snapshot.val())[0];
+    channelName = partnerId;
+    waitingRef.child(partnerId).remove();
+  } else {
+    channelName = userId;
+    waitingRef.child(userId).set(true);
+    alert("Waiting for partner...");
+    return;
+  }
+
+  startCall(channelName);
+}
+
+async function startCall(channel) {
+  await client.join(APP_ID, channel, null, null);
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-  const localPlayer = document.getElementById("local");
-  localTracks[1].play(localPlayer);
-
+  localTracks[1].play("local");
   await client.publish(localTracks);
 
   client.on("user-published", async (user, mediaType) => {
     await client.subscribe(user, mediaType);
-    if (mediaType === "video") {
-      const remotePlayer = document.getElementById("remote");
-      user.videoTrack.play(remotePlayer);
-    }
-    if (mediaType === "audio") {
-      user.audioTrack.play();
-    }
+    if (mediaType === "video") user.videoTrack.play("remote");
+    if (mediaType === "audio") user.audioTrack.play();
   });
+
+  startCoinDeduction();
+}
+
+function startCoinDeduction(){
+  timer = setInterval(()=>{
+    coins -= 1;
+    document.getElementById("coins").innerText = coins;
+
+    if(coins <= 0){
+      clearInterval(timer);
+      alert("Coins finished! Call ended");
+      location.reload();
+    }
+  }, 5000); // every 5 sec 1 coin cut
 }
 </script>
 </body>
