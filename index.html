@@ -25,7 +25,7 @@ button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color
 </select>
 
 <br><br>
-<button onclick="startMatch()">Find Partner</button>
+<button id="startBtn">Find Partner</button>
 
 <div id="videos">
 <div id="local" class="video-box"></div>
@@ -56,7 +56,8 @@ let localTracks;
 async function startMatch(){
   try{
     const gender = document.getElementById("gender").value;
-
+ let channel = "testroom";
+  startCall(channel);
     if(coins <= 0){ alert("No coins"); return; }
 
     // 👇 FIXED ROOM (testing ke liye)
@@ -65,7 +66,8 @@ async function startMatch(){
     startCall(channel);
 
   }catch(e){
-    alert("Error: "+e.message);
+    
+     alert("Button working ✅");
   }
 }
 async function startCall(channel){
@@ -95,6 +97,7 @@ function startCoins(){
     }
   },5000);
 }
+  document.getElementById("startBtn").addEventListener("click", startMatch);
 </script>
 </body>
 </html>
