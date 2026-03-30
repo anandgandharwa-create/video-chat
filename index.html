@@ -3,33 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Premium Random Video Chat</title>
+<title>Premium Video Chat</title>
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
-body{margin:0;font-family:Poppins;background:linear-gradient(135deg,#0f0f1a,#1a1a2e);color:white;display:flex;justify-content:center;align-items:center;height:100vh}
-.container{text-align:center;background:rgba(255,255,255,0.05);padding:25px;border-radius:20px}
-button{padding:10px 20px;border:none;border-radius:20px;background:linear-gradient(45deg,#ff4ecd,#6a5cff);color:white;cursor:pointer}
-#videos{display:flex;gap:10px;margin-top:15px;justify-content:center}
-.video-box{width:150px;height:200px;background:black;border-radius:10px}
-.coin{color:gold;margin-top:10px}
+body{margin:0;background:#0f0f1a;color:white;font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh}
+.container{text-align:center;background:#1a1a2e;padding:20px;border-radius:15px}
+button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color:white;cursor:pointer}
+.video-box{width:140px;height:180px;background:black;border-radius:10px;margin:5px}
+#videos{display:flex;justify-content:center}
 </style>
 </head>
 <body>
 <div class="container">
-<h2>🔥 Premium Video Chat</h2>
+<h3>🔥 Premium Video Chat</h3>
+
+<select id="gender">
+<option value="boy">Boy</option>
+<option value="girl">Girl</option>
+</select>
+
+<br><br>
 <button onclick="startMatch()">Find Partner</button>
+
 <div id="videos">
 <div id="local" class="video-box"></div>
 <div id="remote" class="video-box"></div>
 </div>
-<div class="coin">💰 Coins: <span id="coins">100</span></div>
+
+<p>💰 Coins: <span id="coins">100</span></p>
 </div>
 
 <script>
-// Firebase config
+// Firebase
 const firebaseConfig = {
   apiKey: "YOUR_KEY",
   authDomain: "YOUR_DOMAIN",
@@ -42,60 +49,64 @@ const db = firebase.database();
 // Agora
 const APP_ID = "YOUR_AGORA_APP_ID";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-let localTracks;
 let coins = 100;
-let timer;
+let localTracks;
 
-async function startMatch() {
-  if(coins <= 0){ alert("No coins! Recharge needed"); return; }
+async function startMatch(){
+  try{
+    const gender = document.getElementById("gender").value;
 
-  const userId = "user_" + Math.floor(Math.random()*100000);
-  const waitingRef = db.ref("waiting");
+    if(coins <= 0){ alert("No coins"); return; }
 
-  const snapshot = await waitingRef.once("value");
-  let channelName;
+    const userId = "user_"+Math.floor(Math.random()*100000);
+    const ref = db.ref("waiting_"+gender);
 
-  if (snapshot.exists()) {
-    const partnerId = Object.keys(snapshot.val())[0];
-    channelName = partnerId;
-    waitingRef.child(partnerId).remove();
-  } else {
-    channelName = userId;
-    waitingRef.child(userId).set(true);
-    alert("Waiting for partner...");
-    return;
+    const snapshot = await ref.once("value");
+    let channel;
+
+    if(snapshot.exists()){
+      const partner = Object.keys(snapshot.val())[0];
+      channel = partner;
+      ref.child(partner).remove();
+    }else{
+      ref.child(userId).set(true);
+      alert("Waiting...");
+      return;
+    }
+
+    startCall(channel);
+
+  }catch(e){
+    alert("Error: "+e.message);
   }
-
-  startCall(channelName);
 }
 
-async function startCall(channel) {
+async function startCall(channel){
   await client.join(APP_ID, channel, null, null);
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
   localTracks[1].play("local");
   await client.publish(localTracks);
 
-  client.on("user-published", async (user, mediaType) => {
-    await client.subscribe(user, mediaType);
-    if (mediaType === "video") user.videoTrack.play("remote");
-    if (mediaType === "audio") user.audioTrack.play();
+  client.on("user-published", async (user, type)=>{
+    await client.subscribe(user, type);
+    if(type==="video") user.videoTrack.play("remote");
+    if(type==="audio") user.audioTrack.play();
   });
 
-  startCoinDeduction();
+  startCoins();
 }
 
-function startCoinDeduction(){
-  timer = setInterval(()=>{
-    coins -= 1;
+function startCoins(){
+  setInterval(()=>{
+    coins--;
     document.getElementById("coins").innerText = coins;
 
-    if(coins <= 0){
-      clearInterval(timer);
-      alert("Coins finished! Call ended");
+    if(coins<=0){
+      alert("Coins खत्म");
       location.reload();
     }
-  }, 5000); // every 5 sec 1 coin cut
+  },5000);
 }
 </script>
 </body>
