@@ -59,30 +59,10 @@ async function startMatch(){
 
     if(coins <= 0){ alert("No coins"); return; }
 
-    const userId = "user_"+Math.floor(Math.random()*100000);
+    // 👇 FIXED ROOM (testing ke liye)
+    let channel = "testroom";
 
-    // 👇 opposite gender select
-    const myRef = db.ref("waiting_" + gender);
-    const opposite = gender === "boy" ? "girl" : "boy";
-    const oppRef = db.ref("waiting_" + opposite);
-
-    const snapshot = await oppRef.once("value");
-    let channel;
-
-    if(snapshot.exists()){
-      const partner = Object.keys(snapshot.val())[0];
-      channel = partner;
-
-      // remove partner from waiting
-      await oppRef.child(partner).remove();
-
-      startCall(channel);
-
-    }else{
-      // खुद को waiting में डालो
-      await myRef.child(userId).set(true);
-      alert("Waiting for " + opposite + "...");
-    }
+    startCall(channel);
 
   }catch(e){
     alert("Error: "+e.message);
