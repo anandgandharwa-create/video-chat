@@ -36,7 +36,8 @@ button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color
 </div>
 
 <script>
-  let coins = 100;
+ let coins = 100;
+
 // Firebase
 const firebaseConfig = {
   apiKey: "YOUR_KEY",
@@ -50,54 +51,62 @@ const db = firebase.database();
 // Agora
 const APP_ID = "YOUR_AGORA_APP_ID";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-let coins = 100;
 let localTracks;
 
+// ✅ Button click event
+document.getElementById("startBtn").addEventListener("click", startMatch);
+
+// ✅ Simple test match
 async function startMatch(){
   try{
-    const gender = document.getElementById("gender").value;
- let channel = "testroom";
-  startCall(channel);
-    if(coins <= 0){ alert("No coins"); return; }
+    if(coins <= 0){ 
+      alert("No coins"); 
+      return; 
+    }
 
-    // 👇 FIXED ROOM (testing ke liye)
-    let channel = "testroom";
-
+    let channel = "testroom"; // testing room
     startCall(channel);
 
   }catch(e){
-    
-     alert("Button working ✅");
+    alert("Error: " + e.message);
   }
 }
+
+// ✅ Video call start
 async function startCall(channel){
   await client.join(APP_ID, channel, null, null);
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
   localTracks[1].play("local");
+
   await client.publish(localTracks);
 
   client.on("user-published", async (user, type)=>{
     await client.subscribe(user, type);
-    if(type==="video") user.videoTrack.play("remote");
-    if(type==="audio") user.audioTrack.play();
+
+    if(type === "video"){
+      user.videoTrack.play("remote");
+    }
+    if(type === "audio"){
+      user.audioTrack.play();
+    }
   });
 
   startCoins();
 }
 
+// ✅ Coins system
 function startCoins(){
   setInterval(()=>{
     coins--;
     document.getElementById("coins").innerText = coins;
 
-    if(coins<=0){
+    if(coins <= 0){
       alert("Coins खत्म");
       location.reload();
     }
-  },5000);
+  }, 5000);
 }
-  document.getElementById("startBtn").addEventListener("click", startMatch);
 </script>
 </body>
 </html>
