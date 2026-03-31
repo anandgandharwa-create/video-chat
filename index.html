@@ -50,21 +50,17 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // Agora
-const APP_ID = "YOUR_AGORA_APP_ID";
+const APP_ID = "b169aaaa05074a11bb39002aff39f781";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks;
 
 // ✅ अब सही attach होगा
 document.getElementById("startBtn").addEventListener("click", startMatch);
 
-async function startMatch(){
-  try{
-    // 👇 coins check
-    if(coins <= 0){
-      alert("No coins 💰 Recharge needed");
-      return;
-    }
-
+async function startCall(channel){
+  alert("Agora OFF hai (testing mode)");
+  return;
+}
     // 👇 button disable (double click रोकने के लिए)
     document.getElementById("startBtn").disabled = true;
 
