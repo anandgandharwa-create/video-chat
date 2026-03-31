@@ -59,18 +59,30 @@ document.getElementById("startBtn").addEventListener("click", startMatch);
 
 async function startMatch(){
   try{
-    alert("Button working ✅"); // 👈 पहले test
-
-    if(coins <= 0){ 
-      alert("No coins"); 
-      return; 
+    // 👇 coins check
+    if(coins <= 0){
+      alert("No coins 💰 Recharge needed");
+      return;
     }
 
+    // 👇 button disable (double click रोकने के लिए)
+    document.getElementById("startBtn").disabled = true;
+
+    // 👇 loading feel
+    document.getElementById("startBtn").innerText = "Connecting...";
+
+    // 👇 testing room (2 users connect होंगे)
     let channel = "testroom";
-    startCall(channel);
+
+    // 👇 video call start
+    await startCall(channel);
 
   }catch(e){
     alert("Error: " + e.message);
+
+    // ❌ error आए तो button वापस enable
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").innerText = "Find Partner";
   }
 }
 
