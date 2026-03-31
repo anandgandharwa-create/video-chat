@@ -36,7 +36,9 @@ button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color
 </div>
 
 <script>
- let coins = 100;
+window.onload = function(){
+
+let coins = 100;
 
 // Firebase
 const firebaseConfig = {
@@ -53,18 +55,19 @@ const APP_ID = "YOUR_AGORA_APP_ID";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks;
 
-// ✅ Button click event
+// ✅ अब सही attach होगा
 document.getElementById("startBtn").addEventListener("click", startMatch);
 
-// ✅ Simple test match
 async function startMatch(){
   try{
+    alert("Button working ✅"); // 👈 पहले test
+
     if(coins <= 0){ 
       alert("No coins"); 
       return; 
     }
 
-    let channel = "testroom"; // testing room
+    let channel = "testroom";
     startCall(channel);
 
   }catch(e){
@@ -72,7 +75,6 @@ async function startMatch(){
   }
 }
 
-// ✅ Video call start
 async function startCall(channel){
   await client.join(APP_ID, channel, null, null);
 
@@ -95,7 +97,6 @@ async function startCall(channel){
   startCoins();
 }
 
-// ✅ Coins system
 function startCoins(){
   setInterval(()=>{
     coins--;
@@ -106,6 +107,8 @@ function startCoins(){
       location.reload();
     }
   }, 5000);
+}
+
 }
 </script>
 </body>
