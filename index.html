@@ -47,6 +47,10 @@ let coins = 100;
 
 // Agora
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
+
+// ✅ TOKEN (आपका)
+const TOKEN = "007eJxTYEjP8S203We1mGOFw+zfVUU3Z0YasO1yfnMu9ezKLX63Q24oMCQZmlkmAoGBqYG5SaKhYVKSsaWBgVFiWpqxZZq5hWHOxDOZDYGMDEWOH5kYGSAQxOdgKEktLinKz89lYAAADvEiZw==";
+
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks;
 
@@ -70,12 +74,16 @@ async function startMatch(){
 // ✅ VIDEO CALL
 async function startCall(channel){
 
-  await client.join(APP_ID, channel, null, null);
+  // ✅ UID random
+  let uid = Math.floor(Math.random() * 10000);
+
+  // ✅ TOKEN use
+  await client.join(APP_ID, channel, TOKEN, uid);
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-document.getElementById("local").innerHTML = "";
-localTracks[1].play("local");
+  document.getElementById("local").innerHTML = "";
+  localTracks[1].play("local");
 
   await client.publish(localTracks);
 
@@ -83,6 +91,7 @@ localTracks[1].play("local");
     await client.subscribe(user, type);
 
     if(type === "video"){
+      document.getElementById("remote").innerHTML = "";
       user.videoTrack.play("remote");
     }
     if(type === "audio"){
