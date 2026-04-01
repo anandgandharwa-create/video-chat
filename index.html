@@ -39,53 +39,35 @@ window.onload = function(){
 
 let coins = 100;
 
-// Firebase
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  databaseURL: "YOUR_DB_URL",
-  projectId: "YOUR_ID",
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
 // Agora
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
 let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 let localTracks;
 
-// ✅ अब सही attach होगा
+// ✅ Button click
 document.getElementById("startBtn").addEventListener("click", startMatch);
 
-async function startCall(channel){
-  alert("Agora OFF hai (testing mode)");
-  return;
-}
-    // 👇 button disable (double click रोकने के लिए)
-    document.getElementById("startBtn").disabled = true;
+// ✅ MAIN FUNCTION
+async function startMatch(){
+  try{
+    alert("Connecting...");
 
-    // 👇 loading feel
-    document.getElementById("startBtn").innerText = "Connecting...";
-
-    // 👇 testing room (2 users connect होंगे)
     let channel = "testroom";
 
-    // 👇 video call start
     await startCall(channel);
 
   }catch(e){
     alert("Error: " + e.message);
-
-    // ❌ error आए तो button वापस enable
-    document.getElementById("startBtn").disabled = false;
-    document.getElementById("startBtn").innerText = "Find Partner";
   }
 }
 
+// ✅ VIDEO CALL
 async function startCall(channel){
+
   await client.join(APP_ID, channel, null, null);
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+
   localTracks[1].play("local");
 
   await client.publish(localTracks);
@@ -101,24 +83,8 @@ async function startCall(channel){
     }
   });
 
-  startCoins();
 }
 
-function startCoins(){
-  setInterval(()=>{
-    coins--;
-    document.getElementById("coins").innerText = coins;
-
-    if(coins <= 0){
-      alert("Coins खत्म");
-      location.reload();
-    }
-  }, 5000);
-}
-
-}
-  async function startMatch(){
-  alert("अब button चल रहा है 🔥");
 }
 </script>
 </body>
