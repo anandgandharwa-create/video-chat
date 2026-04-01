@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Premium Video Chat</title>
 <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -13,6 +14,11 @@ body{margin:0;background:#0f0f1a;color:white;font-family:sans-serif;display:flex
 button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color:white;cursor:pointer}
 .video-box{width:140px;height:180px;background:black;border-radius:10px;margin:5px}
 #videos{display:flex;justify-content:center}
+ .video-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 </style>
 </head>
 <body>
@@ -68,7 +74,8 @@ async function startCall(channel){
 
   localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
 
-  localTracks[1].play("local");
+document.getElementById("local").innerHTML = "";
+localTracks[1].play("local");
 
   await client.publish(localTracks);
 
