@@ -128,12 +128,60 @@ async function startMatch(){
 
   try{
     document.getElementById("startBtn").disabled = true;
-    document.getElementById("startBtn").innerText = "Connecting...";
+    document.getElementById("startBtn").innerText = "Searching...";
 
-    await startCall("testroom");
+    const gender = document.getElementById("gender").value;
 
-    joined = true;
-    document.getElementById("startBtn").innerText = "Connected ✅";
+    const myId = "user_" + Math.floor(Math.random()*100000);
+
+    const myRef = firebase.database().ref("waiting_" + gender);
+    const opposite = gender === "boy" ? "girl" : "boy";
+    const oppRef = firebase.database().ref("waiting_" + opposite);
+
+    const snapshot = await oppRef.once("value");
+
+    if(snapshot.exists()){
+      const users = Object.keys(snapshot.val());
+      const partnerId = users[0];
+
+      // remove partner from queue
+      await oppRef.child(partnerId).remove();
+
+      // दोनों same room join करेंगे
+      const channel = partnerId;
+
+      await startCall(channel);
+      joined = true;
+
+      document.getElementById("startBtn").innerText = "Connected ✅";
+
+    }else{
+      // खुद queue में जाओ
+      await myRef.child(myId).set(true);
+
+      alert("Waiting for partner...");
+
+      // wait & listen
+      myRef.child(myId).onDisconnect().remove();
+
+      // polling (simple तरीका)
+      setTimeout(async ()=>{
+        const snap2 = await myRef.child(myId).once("value");
+
+        if(!snap2.exists()){
+          // मतलब match हो गया
+          await startCall(myId);
+          joined = true;
+
+          document.getElementById("startBtn").innerText = "Connected ✅";
+        }else{
+          alert("No user found, try again");
+          document.getElementById("startBtn").disabled = false;
+          document.getElementById("startBtn").innerText = "🔍 Find Partner";
+        }
+
+      },5000);
+    }
 
   }catch(e){
     alert("Error: " + e.message);
