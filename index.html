@@ -96,7 +96,7 @@ button:hover{
 <br><br>
 <button id="startBtn">🔍 Find Partner</button>
 <br><br>
-<button onclick="leaveCall()">❌ End Call</button>
+<button id="endBtn">❌ End Call</button>
 <div id="videos">
 <div id="local" class="video-box"></div>
 <div id="remote" class="video-box"></div>
@@ -117,7 +117,7 @@ let joined = false;
 
 // ✅ Button
 document.getElementById("startBtn").onclick = startMatch;
-
+document.getElementById("endBtn").onclick = leaveCall;
 async function startMatch(){
   if(joined){
     alert("Already connected");
@@ -150,23 +150,30 @@ async function startCall(channel){
     if(type === "audio"){
       user.audioTrack.play();
     }
-   async function leaveCall(){
-  if(localTracks.length){
-    localTracks.forEach(track => track.stop());
-    localTracks.forEach(track => track.close());
+  async function leaveCall(){
+  try{
+    if(localTracks.length){
+      localTracks.forEach(track => {
+        track.stop();
+        track.close();
+      });
+    }
+
+    if(client){
+      await client.leave();
+    }
+
+    document.getElementById("local").innerHTML = "";
+    document.getElementById("remote").innerHTML = "";
+
+    joined = false;
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").innerText = "🔍 Find Partner";
+
+  }catch(e){
+    alert("Leave Error: " + e.message);
   }
-
-  if(client){
-    await client.leave();
-  }
-
-  document.getElementById("local").innerHTML = "";
-  document.getElementById("remote").innerHTML = "";
-
-  joined = false;
-
-  document.getElementById("startBtn").disabled = false;
-  document.getElementById("startBtn").innerText = "🔍 Find Partner";
 }
   });
 
