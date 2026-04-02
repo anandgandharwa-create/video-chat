@@ -146,34 +146,35 @@ async function startMatch(){
   const myId = "user_" + Math.floor(Math.random()*100000);
   const opposite = gender === "boy" ? "girl" : "boy";
 
-  const myRef = firebase.database().ref("waiting_" + gender + "/" + myId);
-  const oppRef = firebase.database().ref("waiting_" + opposite);
+  const myRef = firebase.database().ref("waiting/" + myId);
+  const queueRef = firebase.database().ref("waiting");
 
-  // 🔥 STEP 1: check instantly
-  const snap = await oppRef.limitToFirst(1).once("value");
+  // ✅ STEP 1: check existing user
+  const snap = await queueRef.limitToFirst(1).once("value");
 
   if(snap.exists()){
-    const partnerId = Object.keys(snap.val())[0];
+    const users = snap.val();
+    const partnerId = Object.keys(users)[0];
 
-    // remove partner
-    await oppRef.child(partnerId).remove();
+    if(partnerId !== myId){
+      // remove partner
+      await queueRef.child(partnerId).remove();
 
-    // ✅ SAME CHANNEL (partnerId)
-    await startCall(partnerId);
+      // ✅ same channel
+      await startCall(partnerId);
 
-    joined = true;
-    document.getElementById("startBtn").innerText = "Connected ✅";
-    return;
+      joined = true;
+      document.getElementById("startBtn").innerText = "Connected ✅";
+      return;
+    }
   }
 
-  // 🔥 STEP 2: go to waiting
+  // ✅ STEP 2: go to waiting
   await myRef.set(true);
   myRef.onDisconnect().remove();
 
-  alert("Waiting for partner...");
-
-  // 🔥 STEP 3: REAL TIME LISTENER (IMPORTANT FIX)
-  oppRef.on("child_added", async (snap)=>{
+  // ✅ STEP 3: listen for ANY user
+  queueRef.on("child_added", async (snap)=>{
 
     if(joined) return;
 
@@ -183,68 +184,17 @@ async function startMatch(){
 
     // remove both
     await myRef.remove();
-    await oppRef.child(partnerId).remove();
+    await queueRef.child(partnerId).remove();
 
-    // ✅ SAME CHANNEL (partnerId, NOT myId)
+    // ✅ same channel
     await startCall(partnerId);
 
     joined = true;
     document.getElementById("startBtn").innerText = "Connected ✅";
 
-    // stop listening
-    oppRef.off();
+    queueRef.off();
   });
 }
-// ✅ START CALL
-async function startCall(channel){
-
-  client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-  // listeners
-  client.on("user-published", async (user, type)=>{
-    await client.subscribe(user, type);
-
-    if(type === "video"){
-      document.getElementById("remote").innerHTML = "";
-      user.videoTrack.play("remote");
-    }
-
-    if(type === "audio"){
-      user.audioTrack.play();
-    }
-  });
-
-  client.on("user-unpublished", ()=>{
-    document.getElementById("remote").innerHTML = "";
-  });
-
-  // join
-  let uid = Math.floor(Math.random() * 10000);
-  await client.join(APP_ID, channel, TOKEN, uid);
-
-  // tracks
-  const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-  localTracks = [audioTrack, videoTrack];
-
-  // local video
-  document.getElementById("local").innerHTML = "";
-  videoTrack.play("local");
-
-  // publish
-  await client.publish(localTracks);
-
-  // existing users
-  client.remoteUsers.forEach(user => {
-    if(user.videoTrack){
-      document.getElementById("remote").innerHTML = "";
-      user.videoTrack.play("remote");
-    }
-    if(user.audioTrack){
-      user.audioTrack.play();
-    }
-  });
-}
-
 // ✅ END CALL (FIXED)
 async function leaveCall(){
   try{
