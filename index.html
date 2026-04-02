@@ -131,6 +131,8 @@ async function startMatch(){
   }catch(e){
     alert("Error: " + e.message);
   }
+  document.getElementById("startBtn").disabled = true;
+document.getElementById("startBtn").innerText = "Connecting...";
 }
 
 async function startCall(channel){
