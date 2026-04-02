@@ -111,13 +111,15 @@ window.onload = function(){
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
 const TOKEN = "007eJxTYDDjlru90/zRD57XF+e+fxgtxfBk37OubVd+zDCNvtCmeN1IgSHJ0MwyEQgMTA3MTRINDZOSjC0NDIwS09KMLdPMLQwvfTyb2RDIyPD25RtGRgYIBPE5GEpSi0uK8vNzGRgA13olvg==";
 
-let client;
+let client = null;
 let localTracks = [];
 let joined = false;
 
-// ✅ Button
+// ✅ Buttons
 document.getElementById("startBtn").onclick = startMatch;
 document.getElementById("endBtn").onclick = leaveCall;
+
+// ✅ START MATCH
 async function startMatch(){
   if(joined){
     alert("Already connected");
@@ -125,21 +127,28 @@ async function startMatch(){
   }
 
   try{
-    alert("Connecting...");
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("startBtn").innerText = "Connecting...";
+
     await startCall("testroom");
+
     joined = true;
+    document.getElementById("startBtn").innerText = "Connected ✅";
+
   }catch(e){
     alert("Error: " + e.message);
+
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("startBtn").innerText = "🔍 Find Partner";
   }
-  document.getElementById("startBtn").disabled = true;
-document.getElementById("startBtn").innerText = "Connecting...";
 }
 
+// ✅ START CALL
 async function startCall(channel){
 
   client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-  // ✅ listener पहले
+  // listeners
   client.on("user-published", async (user, type)=>{
     await client.subscribe(user, type);
 
@@ -147,20 +156,57 @@ async function startCall(channel){
       document.getElementById("remote").innerHTML = "";
       user.videoTrack.play("remote");
     }
+
     if(type === "audio"){
       user.audioTrack.play();
     }
-  async function leaveCall(){
+  });
+
+  client.on("user-unpublished", ()=>{
+    document.getElementById("remote").innerHTML = "";
+  });
+
+  // join
+  let uid = Math.floor(Math.random() * 10000);
+  await client.join(APP_ID, channel, TOKEN, uid);
+
+  // tracks
+  const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+  localTracks = [audioTrack, videoTrack];
+
+  // local video
+  document.getElementById("local").innerHTML = "";
+  videoTrack.play("local");
+
+  // publish
+  await client.publish(localTracks);
+
+  // existing users
+  client.remoteUsers.forEach(user => {
+    if(user.videoTrack){
+      document.getElementById("remote").innerHTML = "";
+      user.videoTrack.play("remote");
+    }
+    if(user.audioTrack){
+      user.audioTrack.play();
+    }
+  });
+}
+
+// ✅ END CALL (FIXED)
+async function leaveCall(){
   try{
     if(localTracks.length){
       localTracks.forEach(track => {
         track.stop();
         track.close();
       });
+      localTracks = [];
     }
 
     if(client){
       await client.leave();
+      client = null;
     }
 
     document.getElementById("local").innerHTML = "";
@@ -175,41 +221,7 @@ async function startCall(channel){
     alert("Leave Error: " + e.message);
   }
 }
-  });
-
-  // ✅ user leave handle
-  client.on("user-unpublished", ()=>{
-    document.getElementById("remote").innerHTML = "";
-  });
-
-  // ✅ join
-  let uid = Math.floor(Math.random() * 10000);
-  await client.join(APP_ID, channel, TOKEN, uid);
-
-  // ✅ tracks
-  const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-  localTracks = [audioTrack, videoTrack];
-
-  // ✅ local video
-  document.getElementById("local").innerHTML = "";
-  videoTrack.play("local");
-
-  // ✅ publish
-  await client.publish(localTracks);
-
-  // ✅ अगर पहले से user मौजूद है
-  client.remoteUsers.forEach(user => {
-    if(user.videoTrack){
-      document.getElementById("remote").innerHTML = "";
-      user.videoTrack.play("remote");
-    }
-    if(user.audioTrack){
-      user.audioTrack.play();
-    }
-  });
-}
 
 }
-
 </script>
 </html>
