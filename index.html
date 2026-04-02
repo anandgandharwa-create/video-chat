@@ -144,61 +144,60 @@ async function startMatch(){
     document.getElementById("startBtn").innerText = "Searching...";
 
     const gender = document.getElementById("gender").value;
-
     const myId = "user_" + Math.floor(Math.random()*100000);
 
-    const myRef = firebase.database().ref("waiting_" + gender);
+    const myRef = firebase.database().ref("waiting_" + gender + "/" + myId);
     const opposite = gender === "boy" ? "girl" : "boy";
     const oppRef = firebase.database().ref("waiting_" + opposite);
 
-    const snapshot = await oppRef.once("value");
+    // ✅ पहले check करो कोई available है
+    oppRef.limitToFirst(1).once("value", async (snapshot)=>{
+      if(snapshot.exists()){
+        const partnerId = Object.keys(snapshot.val())[0];
 
-    if(snapshot.exists()){
-      const users = Object.keys(snapshot.val());
-      const partnerId = users[0];
+        // partner remove
+        await oppRef.child(partnerId).remove();
 
-      // remove partner from queue
-      await oppRef.child(partnerId).remove();
+        // connect
+        await startCall(partnerId);
+        joined = true;
 
-      // दोनों same room join करेंगे
-      const channel = partnerId;
+        document.getElementById("startBtn").innerText = "Connected ✅";
+      }else{
 
-      await startCall(channel);
-      joined = true;
+        // ✅ खुद queue में जाओ
+        await myRef.set(true);
+        myRef.onDisconnect().remove();
 
-      document.getElementById("startBtn").innerText = "Connected ✅";
+        // ✅ REAL-TIME LISTENER (main fix)
+        firebase.database()
+        .ref("waiting_" + opposite)
+        .on("child_added", async (snap)=>{
 
-    }else{
-      // खुद queue में जाओ
-      await myRef.child(myId).set(true);
+          if(joined) return;
 
-      alert("Waiting for partner...");
+          const partnerId = snap.key;
 
-      // wait & listen
-      myRef.child(myId).onDisconnect().remove();
+          // खुद remove
+          await myRef.remove();
 
-      // polling (simple तरीका)
-      setTimeout(async ()=>{
-        const snap2 = await myRef.child(myId).once("value");
+          // partner remove
+          await firebase.database()
+          .ref("waiting_" + opposite + "/" + partnerId)
+          .remove();
 
-        if(!snap2.exists()){
-          // मतलब match हो गया
+          // connect
           await startCall(myId);
           joined = true;
 
           document.getElementById("startBtn").innerText = "Connected ✅";
-        }else{
-          alert("No user found, try again");
-          document.getElementById("startBtn").disabled = false;
-          document.getElementById("startBtn").innerText = "🔍 Find Partner";
-        }
+        });
 
-      },5000);
-    }
+      }
+    });
 
   }catch(e){
     alert("Error: " + e.message);
-
     document.getElementById("startBtn").disabled = false;
     document.getElementById("startBtn").innerText = "🔍 Find Partner";
   }
