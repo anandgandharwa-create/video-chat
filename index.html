@@ -146,57 +146,53 @@ async function startMatch(){
   const myId = "user_" + Math.floor(Math.random()*100000);
   const opposite = gender === "boy" ? "girl" : "boy";
 
-  const myQueue = firebase.database().ref("waiting_" + gender + "/" + myId);
-  const oppQueue = firebase.database().ref("waiting_" + opposite);
+  const myRef = firebase.database().ref("waiting_" + gender + "/" + myId);
+  const oppRef = firebase.database().ref("waiting_" + opposite);
 
-  // ✅ STEP 1: check if someone already waiting
-  const snap = await oppQueue.limitToFirst(1).once("value");
+  // 🔥 STEP 1: check instantly
+  const snap = await oppRef.limitToFirst(1).once("value");
 
   if(snap.exists()){
     const partnerId = Object.keys(snap.val())[0];
 
     // remove partner
-    await oppQueue.child(partnerId).remove();
+    await oppRef.child(partnerId).remove();
 
-    // 🔥 SAME CHANNEL FOR BOTH
-    const channel = partnerId;
+    // ✅ SAME CHANNEL (partnerId)
+    await startCall(partnerId);
 
-    await startCall(channel);
     joined = true;
-
     document.getElementById("startBtn").innerText = "Connected ✅";
     return;
   }
 
-  // ✅ STEP 2: खुद waiting में जाओ
-  await myQueue.set(true);
-  myQueue.onDisconnect().remove();
+  // 🔥 STEP 2: go to waiting
+  await myRef.set(true);
+  myRef.onDisconnect().remove();
 
-  // ✅ STEP 3: LISTEN FOR MATCH
-  const listener = oppQueue.on("child_added", async (snap)=>{
+  alert("Waiting for partner...");
+
+  // 🔥 STEP 3: REAL TIME LISTENER (IMPORTANT FIX)
+  oppRef.on("child_added", async (snap)=>{
 
     if(joined) return;
 
     const partnerId = snap.key;
 
-    // ❌ खुद से match avoid
     if(partnerId === myId) return;
 
     // remove both
-    await myQueue.remove();
-    await oppQueue.child(partnerId).remove();
+    await myRef.remove();
+    await oppRef.child(partnerId).remove();
 
-    // 🔥 SAME CHANNEL
-    const channel = myId;
+    // ✅ SAME CHANNEL (partnerId, NOT myId)
+    await startCall(partnerId);
 
-    await startCall(channel);
     joined = true;
-
     document.getElementById("startBtn").innerText = "Connected ✅";
 
-    // ✅ IMPORTANT: listener remove
-    oppQueue.off("child_added", listener);
-
+    // stop listening
+    oppRef.off();
   });
 }
 // ✅ START CALL
