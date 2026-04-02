@@ -139,70 +139,66 @@ async function startMatch(){
     return;
   }
 
-  try{
-    document.getElementById("startBtn").disabled = true;
-    document.getElementById("startBtn").innerText = "Searching...";
+  document.getElementById("startBtn").disabled = true;
+  document.getElementById("startBtn").innerText = "Searching...";
 
-    const gender = document.getElementById("gender").value;
-    const myId = "user_" + Math.floor(Math.random()*100000);
+  const gender = document.getElementById("gender").value;
+  const myId = "user_" + Math.floor(Math.random()*100000);
+  const opposite = gender === "boy" ? "girl" : "boy";
 
-    const myRef = firebase.database().ref("waiting_" + gender + "/" + myId);
-    const opposite = gender === "boy" ? "girl" : "boy";
-    const oppRef = firebase.database().ref("waiting_" + opposite);
+  const myQueue = firebase.database().ref("waiting_" + gender + "/" + myId);
+  const oppQueue = firebase.database().ref("waiting_" + opposite);
 
-    // ✅ पहले check करो कोई available है
-    oppRef.limitToFirst(1).once("value", async (snapshot)=>{
-      if(snapshot.exists()){
-        const partnerId = Object.keys(snapshot.val())[0];
+  // ✅ STEP 1: check if someone already waiting
+  const snap = await oppQueue.limitToFirst(1).once("value");
 
-        // partner remove
-        await oppRef.child(partnerId).remove();
+  if(snap.exists()){
+    const partnerId = Object.keys(snap.val())[0];
 
-        // connect
-        await startCall(partnerId);
-        joined = true;
+    // remove partner
+    await oppQueue.child(partnerId).remove();
 
-        document.getElementById("startBtn").innerText = "Connected ✅";
-      }else{
+    // 🔥 SAME CHANNEL FOR BOTH
+    const channel = partnerId;
 
-        // ✅ खुद queue में जाओ
-        await myRef.set(true);
-        myRef.onDisconnect().remove();
+    await startCall(channel);
+    joined = true;
 
-        // ✅ REAL-TIME LISTENER (main fix)
-        firebase.database()
-        .ref("waiting_" + opposite)
-        .on("child_added", async (snap)=>{
-
-          if(joined) return;
-
-          const partnerId = snap.key;
-
-          // खुद remove
-          await myRef.remove();
-
-          // partner remove
-          await firebase.database()
-          .ref("waiting_" + opposite + "/" + partnerId)
-          .remove();
-
-          // connect
-          await startCall(myId);
-          joined = true;
-
-          document.getElementById("startBtn").innerText = "Connected ✅";
-        });
-
-      }
-    });
-
-  }catch(e){
-    alert("Error: " + e.message);
-    document.getElementById("startBtn").disabled = false;
-    document.getElementById("startBtn").innerText = "🔍 Find Partner";
+    document.getElementById("startBtn").innerText = "Connected ✅";
+    return;
   }
-}
 
+  // ✅ STEP 2: खुद waiting में जाओ
+  await myQueue.set(true);
+  myQueue.onDisconnect().remove();
+
+  // ✅ STEP 3: LISTEN FOR MATCH
+  const listener = oppQueue.on("child_added", async (snap)=>{
+
+    if(joined) return;
+
+    const partnerId = snap.key;
+
+    // ❌ खुद से match avoid
+    if(partnerId === myId) return;
+
+    // remove both
+    await myQueue.remove();
+    await oppQueue.child(partnerId).remove();
+
+    // 🔥 SAME CHANNEL
+    const channel = myId;
+
+    await startCall(channel);
+    joined = true;
+
+    document.getElementById("startBtn").innerText = "Connected ✅";
+
+    // ✅ IMPORTANT: listener remove
+    oppQueue.off("child_added", listener);
+
+  });
+}
 // ✅ START CALL
 async function startCall(channel){
 
