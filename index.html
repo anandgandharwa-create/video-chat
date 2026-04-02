@@ -43,50 +43,36 @@ button{padding:10px 20px;border:none;border-radius:20px;background:#ff4ecd;color
 <script>
 window.onload = function(){
 
-let coins = 100;
-
-// Agora
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
-
-// ✅ TOKEN (आपका)
 const TOKEN = "007eJxTYEjP8S203We1mGOFw+zfVUU3Z0YasO1yfnMu9ezKLX63Q24oMCQZmlkmAoGBqYG5SaKhYVKSsaWBgVFiWpqxZZq5hWHOxDOZDYGMDEWOH5kYGSAQxOdgKEktLinKz89lYAAADvEiZw==";
 
-let client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-let localTracks;
+let client;
+let localTracks = [];
+let joined = false;
 
-// ✅ Button click
-document.getElementById("startBtn").addEventListener("click", startMatch);
+// ✅ Button
+document.getElementById("startBtn").onclick = startMatch;
 
-// ✅ MAIN FUNCTION
 async function startMatch(){
+  if(joined){
+    alert("Already connected");
+    return;
+  }
+
   try{
     alert("Connecting...");
-
-    let channel = "testroom";
-
-    await startCall(channel);
-
+    await startCall("testroom");
+    joined = true;
   }catch(e){
     alert("Error: " + e.message);
   }
 }
 
-// ✅ VIDEO CALL
 async function startCall(channel){
 
-  // ✅ UID random
-  let uid = Math.floor(Math.random() * 10000);
+  client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-  // ✅ TOKEN use
-  await client.join(APP_ID, channel, TOKEN, uid);
-
-  localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
-
-  document.getElementById("local").innerHTML = "";
-  localTracks[1].play("local");
-
-  await client.publish(localTracks);
-
+  // ✅ listener पहले
   client.on("user-published", async (user, type)=>{
     await client.subscribe(user, type);
 
@@ -99,9 +85,38 @@ async function startCall(channel){
     }
   });
 
+  // ✅ user leave handle
+  client.on("user-unpublished", ()=>{
+    document.getElementById("remote").innerHTML = "";
+  });
+
+  // ✅ join
+  let uid = Math.floor(Math.random() * 10000);
+  await client.join(APP_ID, channel, TOKEN, uid);
+
+  // ✅ tracks
+  const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+  localTracks = [audioTrack, videoTrack];
+
+  // ✅ local video
+  document.getElementById("local").innerHTML = "";
+  videoTrack.play("local");
+
+  // ✅ publish
+  await client.publish(localTracks);
+
+  // ✅ अगर पहले से user मौजूद है
+  client.remoteUsers.forEach(user => {
+    if(user.videoTrack){
+      document.getElementById("remote").innerHTML = "";
+      user.videoTrack.play("remote");
+    }
+    if(user.audioTrack){
+      user.audioTrack.play();
+    }
+  });
 }
 
 }
 </script>
-</body>
 </html>
