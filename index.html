@@ -106,8 +106,21 @@ button:hover{
 </div>
 
 <script>
+  
 window.onload = function(){
+// ✅ Firebase config (fixed for your project)
+const firebaseConfig = {
+  apiKey: "AIzaSyDn7hH-pUftrvnwAj2DNWz7O6eH2Wrv8og",
+  authDomain: "videochat-app-5c6da.firebaseapp.com",
+  databaseURL: "https://videochat-app-5c6da-default-rtdb.firebaseio.com",
+  projectId: "videochat-app-5c6da",
+  storageBucket: "videochat-app-5c6da.firebasestorage.app",
+  messagingSenderId: "117299228251",
+  appId: "1:117299228251:web:c8190ffce9a0d4d9b5997e"
+};
 
+// ✅ Initialize Firebase
+firebase.initializeApp(firebaseConfig);
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
 const TOKEN = "007eJxTYDDjlru90/zRD57XF+e+fxgtxfBk37OubVd+zDCNvtCmeN1IgSHJ0MwyEQgMTA3MTRINDZOSjC0NDIwS09KMLdPMLQwvfTyb2RDIyPD25RtGRgYIBPE5GEpSi0uK8vNzGRgA13olvg==";
 
