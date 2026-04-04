@@ -106,9 +106,10 @@ button:hover{
 </div>
 
 <script>
-  
+
 window.onload = function(){
-// ✅ Firebase config (fixed for your project)
+
+// ✅ Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDn7hH-pUftrvnwAj2DNWz7O6eH2Wrv8og",
   authDomain: "videochat-app-5c6da.firebaseapp.com",
@@ -119,10 +120,12 @@ const firebaseConfig = {
   appId: "1:117299228251:web:c8190ffce9a0d4d9b5997e"
 };
 
-// ✅ Initialize Firebase
 firebase.initializeApp(firebaseConfig);
+
+// 🔥 Agora Config
 const APP_ID = "b169aaaa05074a11bb39002aff39f781";
-const TOKEN = null;
+const TOKEN = "YAHAN_APNA_TOKEN_DALO"; // 👈 token yahan paste karo
+const CHANNEL = "test123"; // 👈 same channel for testing
 
 let client = null;
 let localTracks = [];
@@ -132,7 +135,7 @@ let joined = false;
 document.getElementById("startBtn").onclick = startMatch;
 document.getElementById("endBtn").onclick = leaveCall;
 
-// ✅ START MATCH
+// 🔥 START MATCH
 async function startMatch(){
   if(joined){
     alert("Already connected");
@@ -140,62 +143,45 @@ async function startMatch(){
   }
 
   document.getElementById("startBtn").disabled = true;
-  document.getElementById("startBtn").innerText = "Searching...";
+  document.getElementById("startBtn").innerText = "Connecting...";
 
-  const gender = document.getElementById("gender").value;
-  const myId = "user_" + Math.floor(Math.random()*100000);
-  const opposite = gender === "boy" ? "girl" : "boy";
+  await startCall();
 
-  const myRef = firebase.database().ref("waiting/" + myId);
-  const queueRef = firebase.database().ref("waiting");
-
-  // ✅ STEP 1: check existing user
-  const snap = await queueRef.limitToFirst(1).once("value");
-
-  if(snap.exists()){
-    const users = snap.val();
-    const partnerId = Object.keys(users)[0];
-
-    if(partnerId !== myId){
-      // remove partner
-      await queueRef.child(partnerId).remove();
-
-      // ✅ same channel
-      await startCall(partnerId);
-
-      joined = true;
-      document.getElementById("startBtn").innerText = "Connected ✅";
-      return;
-    }
-  }
-
-  // ✅ STEP 2: go to waiting
-  await myRef.set(true);
-  myRef.onDisconnect().remove();
-
-  // ✅ STEP 3: listen for ANY user
-  queueRef.on("child_added", async (snap)=>{
-
-    if(joined) return;
-
-    const partnerId = snap.key;
-
-    if(partnerId === myId) return;
-
-    // remove both
-    await myRef.remove();
-    await queueRef.child(partnerId).remove();
-
-    // ✅ same channel
-    await startCall(partnerId);
-
-    joined = true;
-    document.getElementById("startBtn").innerText = "Connected ✅";
-
-    queueRef.off();
-  });
+  joined = true;
+  document.getElementById("startBtn").innerText = "Connected ✅";
 }
-// ✅ END CALL (FIXED)
+
+// 🔥 AGORA CALL START
+async function startCall(){
+
+  client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+  client.on("user-published", async (user, mediaType) => {
+    await client.subscribe(user, mediaType);
+
+    if(mediaType === "video"){
+      const remoteDiv = document.getElementById("remote");
+      remoteDiv.innerHTML = "";
+      user.videoTrack.play(remoteDiv);
+    }
+
+    if(mediaType === "audio"){
+      user.audioTrack.play();
+    }
+  });
+
+  await client.join(APP_ID, CHANNEL, TOKEN || null, null);
+
+  localTracks = await AgoraRTC.createMicrophoneAndCameraTracks();
+
+  const localDiv = document.getElementById("local");
+  localDiv.innerHTML = "";
+  localTracks[1].play(localDiv);
+
+  await client.publish(localTracks);
+}
+
+// 🔥 END CALL
 async function leaveCall(){
   try{
     if(localTracks.length){
@@ -225,5 +211,6 @@ async function leaveCall(){
 }
 
 }
+
 </script>
 </html>
